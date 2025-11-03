@@ -178,6 +178,7 @@ const PrimaryButton = styled.a`
   font-weight: 700;
   color: #fff;
   background: linear-gradient(90deg, #3b82f6 0%, #10b981 100%);
+  //background-color: #21A3AE ;
   border: none;
   border-radius: 8px;
   text-decoration: none;
