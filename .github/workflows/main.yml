@@ -39,8 +39,7 @@ jobs:
           # navation-bar 앱 환경변수
           echo "${{ secrets.REVIEW_ENV }}" > sveltekit-review-app/.env
           
-          # svelt 앱 환경변수
-          echo "${{ secrets.SEO_ENV }}" > sveltekit-seo-app/.env
+   
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
