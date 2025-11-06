@@ -3,13 +3,18 @@ import styled, { keyframes } from "styled-components";
 import { fetchMyReports, CreateReportResponse } from "../api/reportApi";
 import { notifyError } from "../utils/toast";
 import { useNavigate } from "react-router-dom";
-import { FaDove } from "react-icons/fa";
+import { FaDove, FaSearch } from "react-icons/fa";
 
 /* ====================== 메인 컴포넌트 ====================== */
 export default function MyReportsPage() {
     const [reports, setReports] = useState<CreateReportResponse[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+
+    const [searchText, setSearchText] = useState("");
+    const [filterStatus, setFilterStatus] = useState<"all" | "pending" | "progress" | "resolved">("all");
+    const [sortOption, setSortOption] = useState<"latest" | "oldest" | "status">("latest");
+
     const navigate = useNavigate();
 
     /* ===== 신고 내역 불러오기 ===== */
@@ -17,7 +22,14 @@ export default function MyReportsPage() {
         setLoading(true);
         try {
             const data = await fetchMyReports();
-            setReports(data);
+
+            // 최신순으로 정렬해서 저장
+            const sorted = data.sort(
+                (a, b) =>
+                    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            );
+
+            setReports(sorted);
         } catch (err) {
             console.error(err);
             setError("신고 내역을 불러오는 중 오류가 발생했습니다.");
@@ -30,6 +42,31 @@ export default function MyReportsPage() {
     useEffect(() => {
         loadReports();
     }, []);
+
+
+    // ====================== 필터 / 정렬 로직 ======================
+    const filteredList = reports
+        .filter((r) => {
+            const categoryText = translateCategory(r.category).toLowerCase();
+            return categoryText.includes(searchText.toLowerCase());
+        })
+        .filter((r) => {
+            const status = (r.status ?? "").toUpperCase();
+            if (filterStatus === "pending") return status === "PENDING";
+            if (filterStatus === "progress") return status === "IN_PROGRESS";
+            if (filterStatus === "resolved") return status === "RESOLVED";
+            return true;
+        })
+        .sort((a, b) => {
+            if (sortOption === "latest")
+                return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+            if (sortOption === "oldest")
+                return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+            if (sortOption === "status")
+                return a.status.localeCompare(b.status);
+            return 0;
+        });
+
 
     /* ===== 상태 분기 ===== */
     if (loading) return <StateBox>불러오는 중...</StateBox>;
@@ -44,6 +81,43 @@ export default function MyReportsPage() {
                 <Desc>내가 신고한 사용자와 진행 상태를 확인할 수 있습니다.</Desc>
             </Header>
 
+            <FilterBar>
+                <LeftGroup>
+                    <SearchBox>
+                        <FaSearch color="#9ca3af" size={14} />
+                        <SearchInput
+                            type="text"
+                            placeholder="신고 사유 검색..."
+                            value={searchText}
+                            onChange={(e) => setSearchText(e.target.value)}
+                        />
+                    </SearchBox>
+                </LeftGroup>
+
+                <RightGroup>
+                    <Select
+                        value={filterStatus}
+                        onChange={(e) => setFilterStatus(e.target.value as any)}
+                    >
+                        <option value="all">전체</option>
+                        <option value="pending">처리 대기</option>
+                        <option value="progress">검토 중</option>
+                        <option value="resolved">완료</option>
+                    </Select>
+
+                    <Select
+                        value={sortOption}
+                        onChange={(e) => setSortOption(e.target.value as any)}
+                    >
+                        <option value="latest">최신순</option>
+                        <option value="oldest">오래된순</option>
+                        <option value="status">상태별</option>
+                    </Select>
+                    <Divider />
+                    <CountText>{filteredList.length}건</CountText>
+                </RightGroup>
+            </FilterBar>
+
             <ReportTable>
                 <TableHeader>
                     <div>신고 대상</div>
@@ -52,7 +126,7 @@ export default function MyReportsPage() {
                     <div style={{ textAlign: "right" }}>신고일</div>
                 </TableHeader>
 
-                {reports.map((r) => (
+                {filteredList.map((r) => (
                     <TableRow key={r.id}>
                         <Cell>{r.reportedUserNickname}</Cell>
                         <Category>{translateCategory(r.category)}</Category>
@@ -311,4 +385,88 @@ const ContactButton = styled.button`
         transform: translateY(0); /* 클릭 시 살짝 눌림 효과 */
         filter: brightness(0.98);
     }
+`;
+
+/* ---------- FilterBar ---------- */
+const FilterBar = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #ffffff;
+`;
+
+const LeftGroup = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 12px;
+`;
+
+const RightGroup = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+`;
+
+const SearchBox = styled.div`
+    display: flex;
+    align-items: center;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 6px 10px;
+    width: 240px;
+    transition: all 0.15s ease;
+
+    &:hover,
+    &:focus-within {
+        border-color: #4cc4a8;
+        background: #ffffff;
+        box-shadow: 0 0 0 2px rgba(76, 196, 168, 0.1);
+    }
+`;
+
+const SearchInput = styled.input`
+    border: none;
+    outline: none;
+    background: transparent;
+    margin-left: 8px;
+    font-size: 14px;
+    color: #1e293b;
+    width: 100%;
+
+    &::placeholder {
+        color: #94a3b8;
+    }
+`;
+
+const Select = styled.select`
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 14px;
+    color: #334155;
+    cursor: pointer;
+    transition: all 0.15s ease;
+
+    &:hover {
+        background: #ffffff;
+        border-color: #4cc4a8;
+        box-shadow: 0 0 0 2px rgba(76, 196, 168, 0.1);
+    }
+
+    &:focus {
+        outline: none;
+        border-color: #4cc4a8;
+    }
+`;
+
+const Divider = styled.span`
+    width: 1px;
+    height: 18px;
+    background: #e5e7eb;
+    margin-left: 5px;
+`;
+
+const CountText = styled.span`
+    font-size: 13px;
+    color: #64748b;
 `;

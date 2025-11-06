@@ -16,7 +16,14 @@ export default function InterviewResultPage() {
         const loadData = async () => {
             try {
                 const data = await fetchInterviewResultList();
-                setList(data);
+
+                // 최신순 정렬
+                const sorted = data.sort(
+                    (a, b) =>
+                        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+                );
+
+                setList(sorted);
             } catch (err) {
                 console.error(err);
                 notifyError("면접 결과 목록을 불러오지 못했습니다 ❗");

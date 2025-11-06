@@ -14,7 +14,7 @@ export default function MyPostsPage() {
                     <IconBox>
                         <FaFolderOpen size={26} color="#2563eb"/>
                     </IconBox>
-                    <CardTitle>JobSpoon 활동 기록</CardTitle>
+                    <CardTitle>JobSpoon 게시물 기록</CardTitle>
                     <Tag>COMING SOON</Tag>
                 </CardHeader>
 
